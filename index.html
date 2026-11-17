@@ -1,0 +1,489 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>共写笔记</title>
+  <style>
+    :root { color-scheme: light; --paper: #f5f3ed; --white: #fffefa; --ink: #202b25; --muted: #57645d; --line: #d9ddd3; --green: #184935; --soft: #e7eee4; --amber: #f3e9cf; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--paper); color: var(--ink); font: 15px/1.65 "Inter", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif; }
+    .wrap { width: min(1040px, calc(100% - 48px)); margin: 0 auto; }
+    header { background: var(--white); border-bottom: 1px solid var(--line); }
+    .bar, .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .bar { min-height: 68px; }
+    .brand { display: flex; align-items: center; gap: 11px; color: var(--ink); text-decoration: none; font-weight: 750; }
+    .mark { display: grid; width: 32px; height: 32px; place-items: center; border-radius: 8px; background: var(--green); color: white; font-size: 17px; }
+    .actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
+    .mode { display: inline-flex; align-items: center; gap: 7px; padding: 4px 10px; border-radius: 30px; background: var(--amber); font-size: 12px; white-space: nowrap; }
+    .mode.shared { background: var(--soft); }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: #95680d; }
+    .shared .dot { background: #2b694b; }
+    main { padding: 44px 0 56px; }
+    .hero { padding: 30px clamp(22px, 5vw, 52px) 34px; background: var(--soft); border: 1px solid #d7e1d4; border-radius: 20px; }
+    h1, h2, p { margin: 0; }
+    h1 { font-size: clamp(35px, 6vw, 62px); line-height: 1.17; letter-spacing: -.055em; }
+    h2 { font-size: 22px; line-height: 1.35; overflow-wrap: anywhere; }
+    .hero p { margin-top: 12px; color: #405347; }
+    .workspace { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 20px; margin-top: 20px; align-items: start; }
+    .card { background: var(--white); border: 1px solid var(--line); border-radius: 16px; padding: clamp(18px, 3vw, 27px); min-width: 0; }
+    .section-label { color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: .13em; margin-bottom: 9px; }
+    .body { margin-top: 18px; line-height: 1.85; }
+    .multiline { white-space: pre-wrap; overflow-wrap: anywhere; }
+    .subtle, time { color: var(--muted); font-size: 13px; }
+    form { display: grid; gap: 11px; margin-top: 17px; }
+    label { display: grid; gap: 4px; font-size: 13px; font-weight: 650; }
+    input, textarea, button { font: inherit; }
+    input, textarea { width: 100%; color: var(--ink); padding: 8px 11px; background: #fdfcf8; border: 1px solid #cbd3c9; border-radius: 8px; }
+    textarea { resize: vertical; min-height: 92px; }
+    #edit-body { min-height: 200px; }
+    button { border: 1px solid transparent; border-radius: 8px; background: var(--green); color: #fff; padding: 6px 12px; font-size: 13px; font-weight: 680; cursor: pointer; white-space: nowrap; }
+    button.secondary { border-color: #cbd3c9; background: var(--white); color: var(--green); }
+    button:hover:not(:disabled) { filter: brightness(.94); }
+    button:disabled { opacity: .58; cursor: wait; }
+    :focus-visible { outline: 3px solid #438966; outline-offset: 3px; }
+    .form-actions { display: flex; gap: 8px; }
+    .entries { display: grid; gap: 9px; margin-top: 14px; }
+    .entry { background: #f6f7f1; border-radius: 10px; padding: 11px 12px; min-width: 0; }
+    .entry .row { align-items: baseline; }
+    .entry strong { overflow-wrap: anywhere; }
+    .entry time { flex-shrink: 0; }
+    .entry p { margin-top: 4px; }
+    .notice { margin-top: 14px; font-size: 13px; color: var(--green); }
+    .notice:empty { display: none; }
+    .error { color: #a03428; }
+    details { margin-top: 24px; color: var(--muted); font-size: 13px; }
+    summary { cursor: pointer; width: fit-content; }
+    ol { padding-left: 22px; }
+    li { margin-bottom: 6px; }
+    pre { max-height: 240px; padding: 12px; overflow: auto; background: #eeefe8; border-radius: 8px; }
+    dialog { width: min(410px, calc(100% - 34px)); padding: 24px; color: var(--ink); background: var(--white); border: 1px solid var(--line); border-radius: 15px; }
+    dialog::backdrop { background: rgb(22 39 29 / 45%); }
+    [hidden] { display: none !important; }
+    @media (max-width: 720px) { .workspace { grid-template-columns: 1fr; } .wrap { width: calc(100% - 28px); } main { padding-top: 22px; } .bar { min-height: 58px; } }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap bar">
+      <a class="brand" href="#top"><span class="mark" aria-hidden="true">共</span>共写笔记</a>
+      <div class="actions">
+        <span class="mode" id="mode"><span class="dot" aria-hidden="true"></span><span id="mode-label">浏览器演示</span></span>
+        <button type="button" class="secondary" id="login" hidden>管理员登录</button>
+        <button type="button" class="secondary" id="logout" hidden>退出登录</button>
+      </div>
+    </div>
+  </header>
+  <main class="wrap" id="top">
+    <section class="hero">
+      <h1>共写笔记</h1>
+      <p id="mode-hint">可以编辑正文或发布补充。本演示的内容保存在当前浏览器。</p>
+    </section>
+    <p id="page-status" class="notice" role="status"></p>
+    <div class="workspace">
+      <article class="card">
+        <p class="section-label">正文</p>
+        <div class="row">
+          <h2 id="article-title">DCF 模型笔记</h2>
+          <button type="button" class="secondary" id="edit" hidden>编辑正文</button>
+        </div>
+        <p class="body multiline" id="article-body"></p>
+        <form id="edit-form" hidden>
+          <label>标题<input name="title" maxlength="80" required></label>
+          <label>正文<textarea name="body" id="edit-body" maxlength="6000" required></textarea></label>
+          <div class="form-actions">
+            <button type="submit">保存正文</button>
+            <button type="button" class="secondary" id="cancel-edit">取消</button>
+          </div>
+        </form>
+        <p class="notice" id="edit-status" role="status"></p>
+      </article>
+      <section class="card" aria-labelledby="notes-title">
+        <div class="row">
+          <h2 id="notes-title">大家的补充</h2>
+          <button type="button" class="secondary" id="refresh" hidden>刷新内容</button>
+        </div>
+        <form id="note-form">
+          <label>署名（选填）<input name="author" maxlength="30" placeholder="匿名"></label>
+          <label>补充内容<textarea name="body" maxlength="1000" required placeholder="写下你的例子、问题或补充说明…"></textarea></label>
+          <div class="form-actions"><button type="submit" id="post" disabled>发布补充</button></div>
+        </form>
+        <p class="notice" id="note-status" role="status"></p>
+        <div id="notes" class="entries"></div>
+      </section>
+    </div>
+    <details id="setup">
+      <summary>如何开启多人共享</summary>
+      <ol>
+        <li>创建 Supabase 项目，在 Authentication → Users 新建一个邮箱密码用户，确认邮箱并复制该用户的 User UID。</li>
+        <li>复制下面的 SQL，把 <code>ADMIN_USER_UUID</code> 替换为这个 UID，粘贴到 Supabase SQL Editor 并运行。</li>
+        <li>用文本编辑器找到本文件内的 <code>SUPABASE_URL</code> 和 <code>SUPABASE_PUBLIC_KEY</code> 两行，填入项目 URL 和公开的 Publishable key，然后重新上传到 GitHub Pages。管理员密码只在网页登录时输入。</li>
+        <li>打开发布后的页面。你可以登录修改正文，访客可以直接发布补充，其他人刷新即可看到。</li>
+      </ol>
+      <button type="button" class="secondary" id="copy-sql">复制 SQL</button>
+      <p class="notice" id="copy-status" role="status"></p>
+      <pre id="sql-display" tabindex="0"></pre>
+    </details>
+  </main>
+  <dialog id="login-modal" aria-labelledby="login-title">
+    <h2 id="login-title">管理员登录</h2>
+    <form id="login-form">
+      <label>邮箱<input name="email" type="email" autocomplete="username" required></label>
+      <label>密码<input name="password" type="password" autocomplete="current-password" required></label>
+      <div class="form-actions">
+        <button type="submit">登录</button>
+        <button type="button" id="cancel-login" class="secondary">取消</button>
+      </div>
+    </form>
+    <p class="notice" id="login-status" role="status"></p>
+  </dialog>
+  <script id="setup-sql" type="text/plain">
+begin;
+
+create table if not exists public.shared_notes_page (
+  id integer primary key check (id = 1),
+  owner_id uuid not null references auth.users(id),
+  title text not null check (char_length(trim(title)) between 1 and 80),
+  body text not null check (char_length(trim(body)) between 1 and 6000),
+  revision integer not null default 1
+);
+
+create table if not exists public.shared_notes_entries (
+  id bigint generated always as identity primary key,
+  author text not null default '' check (char_length(author) <= 30),
+  body text not null check (char_length(trim(body)) between 1 and 1000),
+  created_at timestamptz not null default now()
+);
+
+alter table public.shared_notes_page enable row level security;
+alter table public.shared_notes_entries enable row level security;
+
+revoke all on public.shared_notes_page, public.shared_notes_entries
+  from public, anon, authenticated;
+grant select on public.shared_notes_page, public.shared_notes_entries
+  to anon, authenticated;
+grant update (title, body, revision) on public.shared_notes_page to authenticated;
+grant insert (author, body) on public.shared_notes_entries to anon, authenticated;
+
+drop policy if exists read_page on public.shared_notes_page;
+create policy read_page on public.shared_notes_page for select to anon, authenticated
+  using (true);
+drop policy if exists edit_page on public.shared_notes_page;
+create policy edit_page on public.shared_notes_page for update to authenticated
+  using ((select auth.uid()) = owner_id) with check ((select auth.uid()) = owner_id);
+
+drop policy if exists read_entries on public.shared_notes_entries;
+create policy read_entries on public.shared_notes_entries for select to anon, authenticated
+  using (true);
+drop policy if exists add_entry on public.shared_notes_entries;
+create policy add_entry on public.shared_notes_entries for insert to anon, authenticated
+  with check (true);
+
+insert into public.shared_notes_page (id, owner_id, title, body)
+values (1, 'ADMIN_USER_UUID'::uuid, 'DCF 模型笔记',
+  '这个页面用来记录模型假设和估值中的讨论。第一步先写清楚收入增速、利润率和资本开支的依据，再用敏感性分析检查 WACC 和永续增长率对估值的影响。')
+on conflict (id) do nothing;
+
+commit;
+  </script>
+  <script>
+    // 开启多人共享时，填写这两个公开配置。空白时使用浏览器演示。
+    const SUPABASE_URL = "";
+    const SUPABASE_PUBLIC_KEY = "";
+
+    const $ = (id) => document.getElementById(id);
+    const demo = !SUPABASE_URL && !SUPABASE_PUBLIC_KEY;
+    const storageKey = "collaborative-notes-board-v1:" + location.pathname;
+    const initialPage = {
+      title: "DCF 模型笔记",
+      body: "这个页面用来记录模型假设和估值中的讨论。\n\n第一步先写清楚收入增速、利润率和资本开支的依据，再用敏感性分析检查 WACC 和永续增长率对估值的影响。",
+      revision: 1
+    };
+    const dates = new Intl.DateTimeFormat("zh-CN", { dateStyle: "medium", timeStyle: "short" });
+    let page = initialPage;
+    let entries = [];
+    let session = null;
+    let client = null;
+    let editRevision = null;
+
+    function status(id, message, error = false) {
+      $(id).textContent = message;
+      $(id).classList.toggle("error", error);
+    }
+
+    function canEdit() {
+      return demo || Boolean(session && session.user.id === page.owner_id);
+    }
+
+    function render() {
+      $("article-title").textContent = page.title;
+      $("article-body").textContent = page.body;
+      $("edit").hidden = !canEdit() || !$("edit-form").hidden;
+      $("login").hidden = demo || !client || Boolean(session);
+      $("logout").hidden = demo || !session;
+      const list = $("notes");
+      list.replaceChildren();
+      if (!entries.length) {
+        const empty = document.createElement("p");
+        empty.className = "subtle";
+        empty.textContent = "还没有补充。";
+        list.append(empty);
+      }
+      for (const entry of entries) {
+        const item = document.createElement("article");
+        item.className = "entry";
+        const meta = document.createElement("div");
+        meta.className = "row";
+        const author = document.createElement("strong");
+        author.textContent = entry.author || "匿名";
+        const time = document.createElement("time");
+        time.dateTime = entry.created_at;
+        time.textContent = dates.format(new Date(entry.created_at));
+        const body = document.createElement("p");
+        body.className = "multiline";
+        body.textContent = entry.body;
+        meta.append(author, time);
+        item.append(meta, body);
+        list.append(item);
+      }
+      if (entries.length === 100) {
+        const limit = document.createElement("p");
+        limit.className = "subtle";
+        limit.textContent = "显示最近 100 条补充。";
+        list.append(limit);
+      }
+    }
+
+    function requireData(result) {
+      if (result.error) throw result.error;
+      return result.data;
+    }
+
+    async function loadShared() {
+      const [article, notes] = await Promise.all([
+        client.from("shared_notes_page").select("title,body,owner_id,revision").eq("id", 1).single(),
+        client.from("shared_notes_entries").select("id,author,body,created_at").order("id", { ascending: false }).limit(100)
+      ]);
+      const nextPage = requireData(article);
+      entries = requireData(notes);
+      page = nextPage;
+      render();
+      $("post").disabled = false;
+    }
+
+    function loadDemo() {
+      try {
+        const stored = JSON.parse(localStorage.getItem(storageKey) || "null");
+        page = stored?.page || initialPage;
+        entries = stored?.entries || [];
+      } catch {
+        status("page-status", "浏览器无法读取已保存的演示内容。", true);
+      }
+      render();
+    }
+
+    function persistDemo(nextPage, nextEntries) {
+      try {
+        localStorage.setItem(storageKey, JSON.stringify({ page: nextPage, entries: nextEntries }));
+      } catch {
+        status("page-status", "浏览器无法保存演示内容。下次打开时可能恢复初始状态。", true);
+      }
+      page = nextPage;
+      entries = nextEntries;
+      render();
+    }
+
+    function closeEdit() {
+      $("edit-form").hidden = true;
+      $("edit").hidden = !canEdit();
+    }
+
+    $("edit").addEventListener("click", () => {
+      const form = $("edit-form");
+      status("edit-status", "");
+      editRevision = page.revision;
+      form.elements.title.value = page.title;
+      form.elements.body.value = page.body;
+      form.hidden = false;
+      $("edit").hidden = true;
+      form.elements.title.focus();
+    });
+
+    $("cancel-edit").addEventListener("click", () => {
+      closeEdit();
+      status("edit-status", "");
+      $("edit").focus();
+    });
+
+    $("edit-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const title = form.elements.title.value.trim();
+      const body = form.elements.body.value.trim();
+      if (!title || !body) return status("edit-status", "请填写标题和正文。", true);
+      const save = form.querySelector('[type="submit"]');
+      save.disabled = true;
+      try {
+        const changes = { title, body, revision: editRevision + 1 };
+        if (demo) {
+          loadDemo();
+          if (page.revision !== editRevision) {
+            return status("edit-status", "正文刚刚在另一标签页更新。请复制草稿，取消后再打开编辑。", true);
+          }
+          persistDemo({ ...page, ...changes }, entries);
+        } else {
+          const updated = requireData(await client.from("shared_notes_page")
+            .update(changes).eq("id", 1).eq("revision", editRevision)
+            .select("title,body,owner_id,revision").maybeSingle());
+          if (!updated) return status("edit-status", "正文已更新或编辑权限已变更。请复制草稿，再刷新内容。", true);
+          page = updated;
+          render();
+        }
+        closeEdit();
+        status("edit-status", "正文已保存。");
+        $("edit").focus();
+      } catch {
+        status("edit-status", "保存失败，草稿已保留，请重试。", true);
+      } finally {
+        save.disabled = false;
+      }
+    });
+
+    $("note-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const author = form.elements.author.value.trim();
+      const body = form.elements.body.value.trim();
+      if (!body) return status("note-status", "请填写补充内容。", true);
+      $("post").disabled = true;
+      try {
+        if (demo) {
+          loadDemo();
+          persistDemo(page, [{ author, body, created_at: new Date().toISOString() }, ...entries].slice(0, 100));
+        } else {
+          const entry = requireData(await client.from("shared_notes_entries").insert({ author, body }).select().single());
+          entries = [entry, ...entries.filter((existing) => existing.id !== entry.id)].slice(0, 100);
+          render();
+        }
+        form.reset();
+        status("note-status", "补充已发布。");
+      } catch {
+        status("note-status", "发布失败，输入内容已保留，请重试。", true);
+      } finally {
+        $("post").disabled = false;
+      }
+    });
+
+    $("refresh").addEventListener("click", async () => {
+      $("refresh").disabled = true;
+      try {
+        await loadShared();
+        status("page-status", "");
+      } catch {
+        status("page-status", "刷新失败，请重试。", true);
+      } finally {
+        $("refresh").disabled = false;
+      }
+    });
+
+    $("login").addEventListener("click", () => {
+      status("login-status", "");
+      $("login-modal").showModal();
+    });
+    $("cancel-login").addEventListener("click", () => $("login-modal").close());
+    $("login-modal").addEventListener("close", () => $("login-form").reset());
+    $("login-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const button = form.querySelector('[type="submit"]');
+      button.disabled = true;
+      try {
+        const data = requireData(await client.auth.signInWithPassword({
+          email: form.elements.email.value.trim(),
+          password: form.elements.password.value
+        }));
+        session = data.session;
+        render();
+        if (!canEdit()) status("page-status", "已登录。此账号的权限为浏览和发布补充。");
+        else status("page-status", "");
+        $("login-modal").close();
+      } catch {
+        status("login-status", "登录失败。请核对邮箱和密码后重试。", true);
+      } finally {
+        button.disabled = false;
+      }
+    });
+    $("logout").addEventListener("click", async () => {
+      $("logout").disabled = true;
+      try {
+        requireData(await client.auth.signOut());
+        session = null;
+        closeEdit();
+        status("page-status", "");
+        status("edit-status", "");
+        render();
+      } catch {
+        status("page-status", "退出失败，请重试。", true);
+      } finally {
+        $("logout").disabled = false;
+      }
+    });
+
+    const sql = $("setup-sql").textContent.trim();
+    $("sql-display").textContent = sql;
+    $("copy-sql").addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(sql);
+        status("copy-status", "SQL 已复制。");
+      } catch {
+        const selection = getSelection();
+        const range = document.createRange();
+        range.selectNodeContents($("sql-display"));
+        selection.removeAllRanges();
+        selection.addRange(range);
+        status("copy-status", "已选中 SQL，请按 Ctrl+C 或 ⌘C 复制。");
+      }
+    });
+
+    async function start() {
+      if (demo) {
+        loadDemo();
+        $("post").disabled = false;
+        addEventListener("storage", (event) => {
+          if (event.key === storageKey) loadDemo();
+        });
+        return;
+      }
+
+      $("mode-label").textContent = "连接中";
+      $("mode-hint").textContent = "管理员可编辑正文，访客可公开发布补充。";
+      $("article-title").textContent = "正在读取正文…";
+      try {
+        if (!SUPABASE_URL.startsWith("https://") || !SUPABASE_PUBLIC_KEY.startsWith("sb_publishable_")) {
+          throw new Error("Invalid public configuration");
+        }
+        await new Promise((resolve, reject) => {
+          const script = document.createElement("script");
+          script.src = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
+          script.onload = resolve;
+          script.onerror = reject;
+          document.head.append(script);
+        });
+        client = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLIC_KEY);
+        session = requireData(await client.auth.getSession()).session;
+        await loadShared();
+        $("mode-label").textContent = "多人共享";
+        $("mode").classList.add("shared");
+        $("refresh").hidden = false;
+        $("setup").hidden = true;
+      } catch {
+        $("mode-label").textContent = "连接失败";
+        $("article-title").textContent = "暂时无法读取正文";
+        status("page-status", "请核对项目 URL、公开密钥和 SQL 设置，然后重新加载网页。", true);
+      }
+    }
+
+    start();
+  </script>
+</body>
+</html>
